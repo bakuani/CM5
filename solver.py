@@ -50,43 +50,49 @@ def interp_newton(points, x0):
 
 
 def interp_gauss(points, x0):
+    """
+    Интерполяция методом Гаусса без вложенных функций.
+    points — список кортежей (x, y), равномерно расположенных по x.
+    x0 — точка, в которой вычисляем интерполянт.
+    """
     xs = [p[0] for p in points]
     ys = [p[1] for p in points]
     n = len(xs) - 1
     mid = n // 2
 
+    # Построение конечной таблицы разностей
     fin_diffs = [ys[:]]
     for k in range(1, n + 1):
         prev = fin_diffs[-1]
         fin_diffs.append([prev[i + 1] - prev[i] for i in range(len(prev) - 1)])
 
+    # Шаг по x (предполагается, что точки равномерны)
     h = xs[1] - xs[0]
 
+    # Сдвиги для формулы Гаусса
     shifts = [0, -1, 1, -2, 2, -3, 3, -4, 4][:n + 1]
 
-    def branch_positive(x):
-        t = (x - xs[mid]) / h
-        terms = []
+    # Вычисляем t
+    t = (x0 - xs[mid]) / h
+
+    result = ys[mid]
+    # Если x0 > xs[mid], используем положительную ветку
+    if x0 > xs[mid]:
         for k in range(1, n + 1):
-            prod = reduce(lambda a, b: a * b,
-                          [(t + shifts[j]) for j in range(k)], 1.0)
+            # prod = ∏_{j=0..k-1} (t + shifts[j])
+            prod = reduce(lambda a, b: a * b, [(t + shifts[j]) for j in range(k)], 1.0)
             delta = fin_diffs[k][len(fin_diffs[k]) // 2]
-            terms.append(prod * delta / math.factorial(k))
-        return ys[mid] + sum(terms)
-
-    def branch_negative(x):
-        t = (x - xs[mid]) / h
-        terms = []
+            result += prod * delta / math.factorial(k)
+    # Иначе — отрицательную ветку
+    else:
         for k in range(1, n + 1):
-            prod = reduce(lambda a, b: a * b,
-                          [(t - shifts[j]) for j in range(k)], 1.0)
-            offset = (1 - len(fin_diffs[k]) % 2)
+            # prod = ∏_{j=0..k-1} (t - shifts[j])
+            prod = reduce(lambda a, b: a * b, [(t - shifts[j]) for j in range(k)], 1.0)
+            offset = 1 - (len(fin_diffs[k]) % 2)
             delta = fin_diffs[k][len(fin_diffs[k]) // 2 - offset]
-            terms.append(prod * delta / math.factorial(k))
-        return ys[mid] + sum(terms)
+            result += prod * delta / math.factorial(k)
 
-    return branch_positive(x0) if x0 > xs[mid] else branch_negative(x0)
-
+    return result
 
 def interp_stirling(points, x0):
     xs = [p[0] for p in points]
