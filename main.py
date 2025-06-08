@@ -15,32 +15,32 @@ class InterpolatorApp:
         self.root.title("Интерполятор")
         self.root.geometry("1200x700")
 
-        self.point_entries = []  # [(frame, var_x, var_y), ...]
+        self.point_entries = []  
         self._build_ui()
 
-        # Включим по умолчанию хотя бы метод «Ньютон»
+        
         self.var_newton.set(True)
 
         self.root.mainloop()
 
     def _build_ui(self):
-        # Главный контейнер
+        
         main_frame = ttk.Frame(self.root)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Левая панель (контролы)
+        
         left_panel = ttk.Frame(main_frame)
         left_panel.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
 
-        # Правая панель (график + таблицы)
+        
         right_panel = ttk.Frame(main_frame)
         right_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # ==================
-        #  ЛЕВАЯ ПАНЕЛЬ
-        # ==================
+        
+        
+        
 
-        # --- Блок «Ввод данных» ---
+        
         src_box = ttk.Labelframe(left_panel, text="Ввод данных")
         src_box.pack(fill=tk.X, pady=5)
 
@@ -65,7 +65,7 @@ class InterpolatorApp:
         self._page_func()
         self._switch_page()
 
-        # --- Блок «Методы интерполяции» ---
+        
         meth_box = ttk.Labelframe(left_panel, text="Методы интерполяции")
         meth_box.pack(fill=tk.X, pady=5)
         self.var_lagr = tk.BooleanVar()
@@ -86,7 +86,7 @@ class InterpolatorApp:
         btn_all = ttk.Button(meth_box, text="Выбрать всё", command=self._select_all)
         btn_all.pack(pady=5)
 
-        # --- Блок «x* =» ---
+        
         xstar_frame = ttk.Frame(left_panel)
         xstar_frame.pack(fill=tk.X, pady=5)
         ttk.Label(xstar_frame, text="x* =").pack(side=tk.LEFT, padx=(0, 5))
@@ -96,41 +96,41 @@ class InterpolatorApp:
         self.sb_xstar.set("0.0")
         self.sb_xstar.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-        # --- Кнопка «Решить» ---
+        
         self.btn_solve = ttk.Button(left_panel, text="Решить", command=self._solve)
         self.btn_solve.pack(fill=tk.X, pady=(20, 5))
 
-        # --- Полоса статуса внизу ---
+        
         self.status_var = tk.StringVar()
         self.status_label = ttk.Label(
             self.root, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W
         )
         self.status_label.pack(side=tk.BOTTOM, fill=tk.X)
 
-        # ==================
-        #  ПРАВАЯ ПАНЕЛЬ (grid)
-        # ==================
-        # График (строка 0, колонки 0..1)
+        
+        
+        
+        
         self.fig = Figure(figsize=(5, 4))
         self.ax = self.fig.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.fig, master=right_panel)
         self.canvas_widget = self.canvas.get_tk_widget()
         self.canvas_widget.grid(row=0, column=0, columnspan=2, sticky="nsew")
 
-        # Лабельфреймы для таблиц (строка 1, колонки 0 и 1)
+        
         diff_box = ttk.Labelframe(right_panel, text="Таблица конечных разностей")
         diff_box.grid(row=1, column=0, sticky="nsew", padx=(0, 5), pady=(10, 0))
 
         results_box = ttk.Labelframe(right_panel, text="Результаты")
         results_box.grid(row=1, column=1, sticky="nsew", padx=(5, 0), pady=(10, 0))
 
-        # Настраиваем веса у right_panel
-        right_panel.rowconfigure(0, weight=3)  # график займёт 3/4 высоты
-        right_panel.rowconfigure(1, weight=1)  # таблицы займут 1/4 высоты
-        right_panel.columnconfigure(0, weight=3)  # diff_box займёт 3/4 ширины
-        right_panel.columnconfigure(1, weight=1)  # results_box займёт 1/4 ширины
+        
+        right_panel.rowconfigure(0, weight=3)  
+        right_panel.rowconfigure(1, weight=1)  
+        right_panel.columnconfigure(0, weight=3)  
+        right_panel.columnconfigure(1, weight=1)  
 
-        # --- Инициализация «Таблицы конечных разностей» с прокрутками ---
+        
         frame_diff = ttk.Frame(diff_box)
         frame_diff.pack(fill=tk.BOTH, expand=True)
 
@@ -139,7 +139,7 @@ class InterpolatorApp:
         h_scroll = ttk.Scrollbar(frame_diff, orient=tk.HORIZONTAL, command=self.diff_tree.xview)
         self.diff_tree.configure(yscrollcommand=v_scroll.set, xscrollcommand=h_scroll.set)
 
-        # Упаковываем через grid
+        
         self.diff_tree.grid(row=0, column=0, sticky="nsew")
         v_scroll.grid(row=0, column=1, sticky="ns")
         h_scroll.grid(row=1, column=0, columnspan=2, sticky="ew")
@@ -147,7 +147,7 @@ class InterpolatorApp:
         frame_diff.rowconfigure(0, weight=1)
         frame_diff.columnconfigure(0, weight=1)
 
-        # --- Инициализация «Таблицы результатов» с прокрутками ---
+        
         frame_res = ttk.Frame(results_box)
         frame_res.pack(fill=tk.BOTH, expand=True)
 
@@ -165,8 +165,8 @@ class InterpolatorApp:
         frame_res.rowconfigure(0, weight=1)
         frame_res.columnconfigure(0, weight=1)
 
-    # ----------------------------------------
-    # СТРАНИЦЫ ДЛЯ ВВОДА ДАННЫХ (в левом меню)
+    
+    
     def _page_table(self):
         self.page_table = ttk.Frame(self.pages_container)
         self.page_table.pack(fill=tk.X)
@@ -174,7 +174,7 @@ class InterpolatorApp:
         self.table_frame = ttk.Frame(self.page_table)
         self.table_frame.pack(fill=tk.X)
 
-        # Создаём изначально 3 строки
+        
         for _ in range(3):
             self._add_table_row()
 
@@ -233,8 +233,8 @@ class InterpolatorApp:
         else:
             self.page_func.pack(fill=tk.X)
 
-    # ----------------------------------------
-    # Методы для работы с «Таблицей ввода» (ручной ввод)
+    
+    
     def _add_table_row(self):
         if len(self.point_entries) >= MAX_POINTS:
             self.show_error(f"Максимум {MAX_POINTS} точек")
@@ -255,8 +255,8 @@ class InterpolatorApp:
         row_frame, var_x, var_y = self.point_entries.pop()
         row_frame.destroy()
 
-    # ----------------------------------------
-    # «Выбрать всё» для методов
+    
+    
     def _select_all(self):
         self.var_lagr.set(True)
         self.var_newton.set(True)
@@ -264,8 +264,8 @@ class InterpolatorApp:
         self.var_stirling.set(True)
         self.var_bessel.set(True)
 
-    # ----------------------------------------
-    # Диалог выбора файла
+    
+    
     def _browse_file(self):
         path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt *.csv"), ("All files", "*.*")])
         if path:
@@ -274,8 +274,8 @@ class InterpolatorApp:
             self.le_path.insert(0, path)
             self.le_path.config(state='readonly')
 
-    # ----------------------------------------
-    # Методы для «Таблицы конечных разностей»
+    
+    
     def clear_diff_table(self):
         for item in self.diff_tree.get_children():
             self.diff_tree.delete(item)
@@ -306,8 +306,8 @@ class InterpolatorApp:
                     row_vals.append("")
             self.diff_tree.insert("", tk.END, values=row_vals)
 
-    # ----------------------------------------
-    # Методы для «Таблицы результатов»
+    
+    
     def clear_results(self):
         for item in self.res_tree.get_children():
             self.res_tree.delete(item)
@@ -315,8 +315,8 @@ class InterpolatorApp:
     def add_result(self, method, value):
         self.res_tree.insert("", tk.END, values=(method, value))
 
-    # ----------------------------------------
-    # Отображение ошибок/статуса
+    
+    
     def show_error(self, msg):
         self.status_label.config(foreground="red")
         self.status_var.set(f"Ошибка: {msg}")
@@ -327,8 +327,8 @@ class InterpolatorApp:
         self.status_var.set(msg)
         self.root.after(5000, lambda: self.status_var.set(""))
 
-    # ----------------------------------------
-    # Построение графика (scatter + кривые методов)
+    
+    
     def plot(self, points, x0):
         if not points:
             self.ax.clear()
@@ -371,14 +371,14 @@ class InterpolatorApp:
         self.ax.grid(True)
         self.canvas.draw()
 
-    # ----------------------------------------
-    # Основной метод «Решить»
+    
+    
     def _solve(self):
         self.clear_diff_table()
         self.clear_results()
-        self.show_ok("")  # сбросим сообщение
+        self.show_ok("")  
 
-        # Считываем данные в зависимости от режима
+        
         try:
             mode = self.var_input_mode.get()
             if mode == 'table':
@@ -401,7 +401,7 @@ class InterpolatorApp:
                 data_kind = 'file'
                 data = path
 
-            else:  # func
+            else:  
                 left = float(self.le_left.get())
                 right = float(self.le_right.get())
                 count = int(self.sb_n.get())
@@ -440,6 +440,6 @@ class InterpolatorApp:
             self.show_error(str(e))
 
 
-# === Запуск приложения ===
+
 if __name__ == "__main__":
     InterpolatorApp()
