@@ -3,7 +3,7 @@ from tkinter import ttk, filedialog, messagebox
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-from solver import process_data, interp_newton, interp_gauss, interp_stirling, interp_bessel, interp_lagrange
+from solver import *
 
 MAX_POINTS = 20
 FUNCTIONS = ["sin(x)", "cos(x)", "exp(x)"]
@@ -19,7 +19,7 @@ class InterpolatorApp:
         self._build_ui()
 
         
-        self.var_newton.set(True)
+        self.var_newton_divided.set(True)
 
         self.root.mainloop()
 
@@ -36,11 +36,6 @@ class InterpolatorApp:
         right_panel = ttk.Frame(main_frame)
         right_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        
-        
-        
-
-        
         src_box = ttk.Labelframe(left_panel, text="Ввод данных")
         src_box.pack(fill=tk.X, pady=5)
 
@@ -69,12 +64,16 @@ class InterpolatorApp:
         meth_box = ttk.Labelframe(left_panel, text="Методы интерполяции")
         meth_box.pack(fill=tk.X, pady=5)
         self.var_lagr = tk.BooleanVar()
-        self.var_newton = tk.BooleanVar()
+        self.var_newton_divided = tk.BooleanVar()
         self.var_gauss = tk.BooleanVar()
         self.var_stirling = tk.BooleanVar()
         self.var_bessel = tk.BooleanVar()
+        self.var_newton_finite = tk.BooleanVar()
         cb_lagr = ttk.Checkbutton(meth_box, text="Лагранж", variable=self.var_lagr)
-        cb_newton = ttk.Checkbutton(meth_box, text="Ньютон", variable=self.var_newton)
+        cb_newton = ttk.Checkbutton(meth_box, text="Ньютон (раздел.)", variable=self.var_newton_divided)
+        cb_newton_finite = ttk.Checkbutton(
+            meth_box, text="Ньютон (конеч.)", variable=self.var_newton_finite
+        )
         cb_gauss = ttk.Checkbutton(meth_box, text="Гаусс", variable=self.var_gauss)
         cb_stirling = ttk.Checkbutton(meth_box, text="Стирлинг", variable=self.var_stirling)
         cb_bessel = ttk.Checkbutton(meth_box, text="Бессель", variable=self.var_bessel)
@@ -83,6 +82,7 @@ class InterpolatorApp:
         cb_gauss.pack(anchor=tk.W, pady=2)
         cb_stirling.pack(anchor=tk.W, pady=2)
         cb_bessel.pack(anchor=tk.W, pady=2)
+        cb_newton_finite.pack(anchor=tk.W, pady=2)
         btn_all = ttk.Button(meth_box, text="Выбрать всё", command=self._select_all)
         btn_all.pack(pady=5)
 
@@ -255,17 +255,14 @@ class InterpolatorApp:
         row_frame, var_x, var_y = self.point_entries.pop()
         row_frame.destroy()
 
-    
-    
     def _select_all(self):
         self.var_lagr.set(True)
-        self.var_newton.set(True)
+        self.var_newton_divided.set(True)
+        self.var_newton_finite.set(True)
         self.var_gauss.set(True)
         self.var_stirling.set(True)
         self.var_bessel.set(True)
 
-    
-    
     def _browse_file(self):
         path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt *.csv"), ("All files", "*.*")])
         if path:
@@ -342,24 +339,27 @@ class InterpolatorApp:
         x_min, x_max = xs[0], xs[-1]
         xx = [x_min + i * (x_max - x_min) / 300 for i in range(301)]
 
-        if self.var_newton.get():
-            yy_n = [interp_newton(points, x) for x in xx]
-            self.ax.plot(xx, yy_n, linestyle="--", label="Ньютон")
+        if self.var_newton_finite.get():
+            yy_n = [newton_finite(points, x) for x in xx]
+            self.ax.plot(xx, yy_n, linestyle="--", label="Ньютон (конеч.)")
+        if self.var_newton_divided.get():
+            yy_g = [newton_divided(points, x) for x in xx]
+            self.ax.plot(xx, yy_g, linestyle="-.", label="Ньютон (раздел.)")
         if self.var_gauss.get():
-            yy_g = [interp_gauss(points, x) for x in xx]
+            yy_g = [gauss_interpolation(points, x) for x in xx]
             self.ax.plot(xx, yy_g, linestyle="-.", label="Гаусс")
         if self.var_stirling.get():
-            yy_s = [interp_stirling(points, x) for x in xx]
+            yy_s = [stirling_interpolation(points, x) for x in xx]
             self.ax.plot(xx, yy_s, linestyle=":", label="Стирлинг")
         if self.var_bessel.get():
-            yy_b = [interp_bessel(points, x) for x in xx]
+            yy_b = [bessel_interpolation(points, x) for x in xx]
             self.ax.plot(xx, yy_b, linestyle="--", label="Бессель")
         if self.var_lagr.get():
-            yy_l = [interp_lagrange(points, x) for x in xx]
+            yy_l = [lagrange_interpolation(points, x) for x in xx]
             self.ax.plot(xx, yy_l, linestyle="-", label="Лагранж")
 
         try:
-            y0 = interp_newton(points, x0)
+            y0 = newton_finite(points, x0)
             self.ax.scatter([x0], [y0], marker="x", s=100, label=f"x*={x0:.4g}")
         except Exception:
             pass
@@ -422,9 +422,10 @@ class InterpolatorApp:
 
         methods = {
             'lagrange': self.var_lagr.get(),
-            'newton': self.var_newton.get(),
+            'newton_divided': self.var_newton_divided.get(),
             'gauss': self.var_gauss.get(),
             'stirling': self.var_stirling.get(),
+            'newton_finite': self.var_newton_finite.get(),
             'bessel': self.var_bessel.get()
         }
 
@@ -435,7 +436,7 @@ class InterpolatorApp:
             return
 
         try:
-            process_data(data_kind, data, methods, xstar, self)
+            execute_interpolation(data_kind, data, methods, xstar, self)
         except Exception as e:
             self.show_error(str(e))
 

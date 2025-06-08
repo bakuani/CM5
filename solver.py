@@ -2,211 +2,242 @@ import csv
 import math
 from functools import reduce
 
-FUNCTION_MAP = {
+
+MATH_FUNCTIONS = {
     "sin(x)": math.sin,
     "cos(x)": math.cos,
     "exp(x)": math.exp,
 }
 
 
-def compute_diff_table(points):
-    n = len(points)
-    table = [[y for _, y in points]]
-    for level in range(1, n):
+def build_diff_table(data):
+    table = [[y for _, y in data]]
+    for lvl in range(1, len(data)):
         prev = table[-1]
         curr = [prev[i + 1] - prev[i] for i in range(len(prev) - 1)]
         table.append(curr)
     return table
 
 
-def interp_lagrange(points, x0):
-    result = 0.0
-    for i, (xi, yi) in enumerate(points):
-        term = yi
-        for j, (xj, _) in enumerate(points):
-            if i != j:
-                term *= (x0 - xj) / (xi - xj)
-        result += term
-    return result
-
-
-def interp_newton(points, x0):
-    n = len(points)
-    xs = [p[0] for p in points]
-
-    dd = [[p[1]] for p in points]
+def build_divided_diff(data):
+    n = len(data)
+    x_vals = [pt[0] for pt in data]
+    dd = [[pt[1]] for pt in data]
     for level in range(1, n):
         for i in range(n - level):
-            num = dd[i + 1][level - 1] - dd[i][level - 1]
-            den = xs[i + level] - xs[i]
-            dd[i].append(num / den)
+            numerator = dd[i + 1][level - 1] - dd[i][level - 1]
+            denominator = x_vals[i + level] - x_vals[i]
+            dd[i].append(numerator / denominator)
+    return dd
 
+
+def lagrange_interpolation(data, x):
+    total = 0.0
+    for i, (xi, yi) in enumerate(data):
+        basis = yi
+        for j, (xj, _) in enumerate(data):
+            if i != j:
+                basis *= (x - xj) / (xi - xj)
+        total += basis
+    return total
+
+
+def newton_divided(data, x):
+    n = len(data)
+    x_vals = [pt[0] for pt in data]
+    dd = build_divided_diff(data)
     result = dd[0][0]
-    prod = 1.0
+    product = 1.0
     for level in range(1, n):
-        prod *= (x0 - xs[level - 1])
-        result += dd[0][level] * prod
+        product *= (x - x_vals[level - 1])
+        result += dd[0][level] * product
     return result
 
 
-def interp_gauss(points, x0):
-    xs = [p[0] for p in points]
-    ys = [p[1] for p in points]
-    n = len(xs) - 1
-    mid = n // 2
+def newton_finite(data, x):
+    pts = sorted(data, key=lambda pt: pt[0])
+    n = len(pts)
+    x_vals = [p[0] for p in pts]
+    y_vals = [p[1] for p in pts]
 
     
-    fin_diffs = [ys[:]]
-    for k in range(1, n + 1):
-        prev = fin_diffs[-1]
-        fin_diffs.append([prev[i + 1] - prev[i] for i in range(len(prev) - 1)])
-
-    
-    h = xs[1] - xs[0]
-
-    
-    shifts = [0, -1, 1, -2, 2, -3, 3, -4, 4][:n + 1]
-
-    
-    t = (x0 - xs[mid]) / h
-
-    result = ys[mid]
-    
-    if x0 > xs[mid]:
-        for k in range(1, n + 1):
+    h = x_vals[1] - x_vals[0]
+    for i in range(1, n - 1):
+        if abs((x_vals[i + 1] - x_vals[i]) - h) > 1e-8:
             
-            prod = reduce(lambda a, b: a * b, [(t + shifts[j]) for j in range(k)], 1.0)
-            delta = fin_diffs[k][len(fin_diffs[k]) // 2]
-            result += prod * delta / math.factorial(k)
+            raise ValueError("Узлы неравномерны: метод конечных разностей недоступен")
+
     
+    diff_table = build_diff_table(pts)
+
+    if x <= x_vals[n // 2]:
+        t = (x - x_vals[0]) / h
+        result = y_vals[0]
+        factorial = 1.0
+        term_prod = 1.0
+        for k in range(1, n):
+            term_prod *= (t - (k - 1))
+            factorial *= k
+            delta = diff_table[k][0]  
+            result += term_prod * delta / factorial
+        return result
+    else:
+        t = (x - x_vals[-1]) / h
+        result = y_vals[-1]
+        factorial = 1.0
+        term_prod = 1.0
+        for k in range(1, n):
+            term_prod *= (t + (k - 1))
+            factorial *= k
+            delta = diff_table[k][n - k - 1]  
+            result += term_prod * delta / factorial
+        return result
+
+
+def gauss_interpolation(data, x):
+    pts = sorted(data, key=lambda pt: pt[0])
+    n = len(pts) - 1
+    x_vals = [pt[0] for pt in pts]
+    y_vals = [pt[1] for pt in pts]
+
+    mid = n // 2
+    h = x_vals[1] - x_vals[0]
+    t = (x - x_vals[mid]) / h
+
+    
+    diff_table = [y_vals[:]]
+    for lvl in range(1, n + 1):
+        prev = diff_table[-1]
+        diff_table.append([prev[i + 1] - prev[i] for i in range(len(prev) - 1)])
+
+    offsets = [0, -1, 1, -2, 2, -3, 3][:n + 1]
+    result = y_vals[mid]
+
+    if x >= x_vals[mid]:
+        for k in range(1, n + 1):
+            term = reduce(lambda a, b: a * b, [(t + offsets[j]) for j in range(k)], 1.0)
+            delta = diff_table[k][len(diff_table[k]) // 2]
+            result += term * delta / math.factorial(k)
     else:
         for k in range(1, n + 1):
-            
-            prod = reduce(lambda a, b: a * b, [(t - shifts[j]) for j in range(k)], 1.0)
-            offset = 1 - (len(fin_diffs[k]) % 2)
-            delta = fin_diffs[k][len(fin_diffs[k]) // 2 - offset]
-            result += prod * delta / math.factorial(k)
+            term = reduce(lambda a, b: a * b, [(t - offsets[j]) for j in range(k)], 1.0)
+            offset = 1 - (len(diff_table[k]) % 2)
+            delta = diff_table[k][len(diff_table[k]) // 2 - offset]
+            result += term * delta / math.factorial(k)
 
     return result
 
-def interp_stirling(points, x0):
-    xs = [p[0] for p in points]
-    ys = [p[1] for p in points]
 
-    h = xs[1] - xs[0]
-    diff = compute_diff_table(points)
+def stirling_interpolation(data, x):
+    pts = sorted(data, key=lambda pt: pt[0])
+    n = len(pts) - 1
+    x_vals = [pt[0] for pt in pts]
+    y_vals = [pt[1] for pt in pts]
 
-    n = len(xs) - 1
-    alpha = n // 2
+    h = x_vals[1] - x_vals[0]
+    center = n // 2
+    t = (x - x_vals[center]) / h
 
-    t = (x0 - xs[alpha]) / h
+    diff_table = build_diff_table(pts)
 
     shifts = [0]
     for i in range(1, n + 1):
         shifts += [-i, i]
     shifts = shifts[:n]
 
-    s_pos = ys[alpha]
-    s_neg = ys[alpha]
-    prod_pos = 1.0
-    prod_neg = 1.0
-    fact = 1.0
+    s_forward = y_vals[center]
+    s_backward = y_vals[center]
+    factorial = 1.0
+    term_f = 1.0
+    term_b = 1.0
 
     for k in range(1, n + 1):
-        fact *= k
-        shift = shifts[k - 1]
+        factorial *= k
+        shift_val = shifts[k - 1]
 
-        prod_pos *= (t + shift)
-        prod_neg *= (t - shift)
+        term_f *= (t + shift_val)
+        term_b *= (t - shift_val)
 
-        col = diff[k]
-        idx_center = len(col) // 2
-        delta_center = col[idx_center]
-
+        col = diff_table[k]
+        idx_mid = len(col) // 2
+        delta_mid = col[idx_mid]
         offset = 1 - (len(col) % 2)
-        delta_side = col[idx_center - offset]
+        delta_side = col[idx_mid - offset]
 
-        s_pos += prod_pos * delta_center / fact
-        s_neg += prod_neg * delta_side / fact
+        s_forward += term_f * delta_mid / factorial
+        s_backward += term_b * delta_side / factorial
 
-    return 0.5 * (s_pos + s_neg)
+    return 0.5 * (s_forward + s_backward)
 
 
-def interp_bessel(points, x0):
-    xs = [p[0] for p in points]
-    ys = [p[1] for p in points]
+def bessel_interpolation(data, x):
+    pts = sorted(data, key=lambda pt: pt[0])
+    n = len(pts)
+    x_vals = [pt[0] for pt in pts]
+    y_vals = [pt[1] for pt in pts]
 
-    h = xs[1] - xs[0]
-    diff = compute_diff_table(points)
+    h = x_vals[1] - x_vals[0]
+    diff_table = build_diff_table(pts)
 
-    n = len(xs)
     m = n // 2 - 1
+    t = (x - x_vals[m]) / h
 
-    t = (x0 - xs[m]) / h
+    result = 0.5 * (y_vals[m] + y_vals[m + 1])
+    result += (t - 0.5) * diff_table[1][m]
 
-    result = 0.5 * (ys[m] + ys[m + 1])
-    result += (t - 0.5) * diff[1][m]
-
-    even_coeff = t * (t - 1) / 2
-    odd_coeff = (t - 0.5) * t * (t - 1) / 6
+    term_even = t * (t - 1) / 2
+    term_odd = (t - 0.5) * t * (t - 1) / 6
 
     r = 1
     while True:
         k_even = 2 * r
         k_odd = k_even + 1
 
-        if k_even < len(diff):
+        if k_even < len(diff_table):
             left = m - r
             right = left + 1
-            if 0 <= left and right < len(diff[k_even]):
-                avg = 0.5 * (diff[k_even][left] + diff[k_even][right])
-                result += even_coeff * avg
+            if 0 <= left and right < len(diff_table[k_even]):
+                avg_val = 0.5 * (diff_table[k_even][left] + diff_table[k_even][right])
+                result += term_even * avg_val
 
-        if k_odd < len(diff):
+        if k_odd < len(diff_table):
             idx = m - r
-            if 0 <= idx < len(diff[k_odd]):
-                result += odd_coeff * diff[k_odd][idx]
+            if 0 <= idx < len(diff_table[k_odd]):
+                result += term_odd * diff_table[k_odd][idx]
 
-        if k_even >= len(diff) and k_odd >= len(diff):
+        if k_even >= len(diff_table) and k_odd >= len(diff_table):
             break
-
         if m - r - 1 < 0:
             break
 
-        even_coeff *= (t + r) * (t - r - 1) / ((2 * r + 2) * (2 * r + 1))
-        odd_coeff *= (t + r) * (t - r - 1) / ((2 * r + 3) * (2 * r + 2))
-
+        term_even *= (t + r) * (t - r - 1) / ((2 * r + 2) * (2 * r + 1))
+        term_odd *= (t + r) * (t - r - 1) / ((2 * r + 3) * (2 * r + 2))
         r += 1
 
     return result
 
 
-def process_data(kind, data, methods, x_star, gui):
+def execute_interpolation(source, source_data, methods, x_point, gui):
     try:
-        if kind == 'file':
-            points = []
-            with open(data, newline='') as f:
+        if source == 'file':
+            pts = []
+            with open(source_data, newline='') as f:
                 reader = csv.reader(f)
                 for row in reader:
                     if len(row) >= 2:
-                        x_val = float(row[0])
-                        y_val = float(row[1])
-                        points.append((x_val, y_val))
-
-        elif kind == 'func':
-            name = data['name']
-            left = data['left']
-            right = data['right']
-            count = data['n']
-            func = FUNCTION_MAP[name]
+                        pts.append((float(row[0]), float(row[1])))
+        elif source == 'func':
+            fname = source_data['name']
+            left = source_data['left']
+            right = source_data['right']
+            count = source_data['n']
             step = (right - left) / (count - 1)
-            points = [(left + i * step, func(left + i * step))
-                      for i in range(count)]
-        else:
-            points = list(data)
+            func = MATH_FUNCTIONS[fname]
+            pts = [(left + i * step, func(left + i * step)) for i in range(count)]
+        else:  
+            pts = list(source_data)
 
-        points.sort(key=lambda p: p[0])
-
+        pts.sort(key=lambda p: p[0])
     except Exception as e:
         gui.show_error(f"Ошибка подготовки данных: {e}")
         return
@@ -214,38 +245,53 @@ def process_data(kind, data, methods, x_star, gui):
     gui.clear_diff_table()
     gui.clear_results()
 
-    diffs = compute_diff_table(points)
+    diffs = build_diff_table(pts)
     gui.update_diff_table(diffs)
 
     try:
+        
         if methods.get('lagrange'):
-            y = interp_lagrange(points, x_star)
-            gui.add_result('Лагранж', f"{y:.6f}")
-        if methods.get('newton'):
-            y = interp_newton(points, x_star)
-            gui.add_result('Ньютон', f"{y:.6f}")
+            y_val = lagrange_interpolation(pts, x_point)
+            gui.add_result('Лагранж', f"{y_val:.6f}")
+
+        
+        if methods.get('newton_divided'):
+            y_val = newton_divided(pts, x_point)
+            gui.add_result('Ньютон (раздел.)', f"{y_val:.6f}")
+
+        
+        if methods.get('newton_finite'):
+            y_val = newton_finite(pts, x_point)
+            gui.add_result('Ньютон (конеч.)', f"{y_val:.6f}")
+
+        
         if methods.get('gauss'):
-            y = interp_gauss(points, x_star)
-            gui.add_result('Гаусс', f"{y:.6f}")
+            y_val = gauss_interpolation(pts, x_point)
+            gui.add_result('Гаусс', f"{y_val:.6f}")
+
+        
         if methods.get('stirling'):
-            if len(points) % 2 == 0:
-                gui.show_error("Для метода Стирлинга нужно нечётное число узлов")
+            if len(pts) % 2 == 0:
+                gui.show_error("Для Стирлинга нужно нечётное число узлов")
             else:
-                y = interp_stirling(points, x_star)
-                gui.add_result('Стирлинг', f"{y:.6f}")
+                y_val = stirling_interpolation(pts, x_point)
+                gui.add_result('Стирлинг', f"{y_val:.6f}")
+
+        
         if methods.get('bessel'):
-            if len(points) % 2 == 1:
-                gui.show_error("Для метода Бесселя нужно чётное число узлов")
+            if len(pts) % 2 == 1:
+                gui.show_error("Для Бесселя нужно чётное число узлов")
             else:
-                y = interp_bessel(points, x_star)
-                gui.add_result('Бессель', f"{y:.6f}")
-    except Exception as e:
-        gui.show_error(f"Ошибка вычислений: {e}")
+                y_val = bessel_interpolation(pts, x_point)
+                gui.add_result('Бессель', f"{y_val:.6f}")
+
+    except Exception as calc_err:
+        gui.show_error(f"Ошибка вычислений: {calc_err}")
         return
 
     try:
-        gui.plot(points, x_star)
+        gui.plot(pts, x_point)
     except AttributeError:
         pass
 
-    gui.show_ok("Готово")
+    gui.show_ok("Вычислено успешно")
