@@ -324,8 +324,8 @@ class InterpolatorApp:
         self.status_var.set(msg)
         self.root.after(5000, lambda: self.status_var.set(""))
 
-    
-    
+
+
     def plot(self, points, x0):
         if not points:
             self.ax.clear()
@@ -339,9 +339,7 @@ class InterpolatorApp:
         x_min, x_max = xs[0], xs[-1]
         xx = [x_min + i * (x_max - x_min) / 300 for i in range(301)]
 
-        if self.var_newton_finite.get():
-            yy_n = [newton_finite(points, x) for x in xx]
-            self.ax.plot(xx, yy_n, linestyle="--", label="Ньютон (конеч.)")
+
         if self.var_newton_divided.get():
             yy_g = [newton_divided(points, x) for x in xx]
             self.ax.plot(xx, yy_g, linestyle="-.", label="Ньютон (раздел.)")
@@ -357,12 +355,16 @@ class InterpolatorApp:
         if self.var_lagr.get():
             yy_l = [lagrange_interpolation(points, x) for x in xx]
             self.ax.plot(xx, yy_l, linestyle="-", label="Лагранж")
+        if self.var_newton_finite.get():
+            yy_n = [newton_finite(points, x) for x in xx]
+            self.ax.plot(xx, yy_n, linestyle="--", label="Ньютон (конеч.)")
 
         try:
-            y0 = newton_finite(points, x0)
+            y0 = newton_divided(points, x0)
             self.ax.scatter([x0], [y0], marker="x", s=100, label=f"x*={x0:.4g}")
         except Exception:
-            pass
+            y0 = newton_finite(points, x0)
+            self.ax.scatter([x0], [y0], marker="x", s=100, label=f"x*={x0:.4g}")
 
         self.ax.set_xlabel("x")
         self.ax.set_ylabel("y")

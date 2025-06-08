@@ -248,46 +248,53 @@ def execute_interpolation(source, source_data, methods, x_point, gui):
     diffs = build_diff_table(pts)
     gui.update_diff_table(diffs)
 
-    try:
-        
-        if methods.get('lagrange'):
+    if methods.get('lagrange'):
+        try:
             y_val = lagrange_interpolation(pts, x_point)
             gui.add_result('Лагранж', f"{y_val:.6f}")
+        except Exception as e:
+            gui.show_error(f"Лагранж: {e}")
 
-        
-        if methods.get('newton_divided'):
+    if methods.get('newton_divided'):
+        try:
             y_val = newton_divided(pts, x_point)
             gui.add_result('Ньютон (раздел.)', f"{y_val:.6f}")
+        except Exception as e:
+            gui.show_error(f"Ньютон (раздел.): {e}")
 
-        
-        if methods.get('newton_finite'):
+    if methods.get('newton_finite'):
+        try:
             y_val = newton_finite(pts, x_point)
             gui.add_result('Ньютон (конеч.)', f"{y_val:.6f}")
+        except Exception as e:
+            gui.show_error(f"Ньютон (конеч.): {e}")
 
-        
-        if methods.get('gauss'):
+    if methods.get('gauss'):
+        try:
             y_val = gauss_interpolation(pts, x_point)
             gui.add_result('Гаусс', f"{y_val:.6f}")
+        except Exception as e:
+            gui.show_error(f"Гаусс: {e}")
 
-        
-        if methods.get('stirling'):
-            if len(pts) % 2 == 0:
-                gui.show_error("Для Стирлинга нужно нечётное число узлов")
-            else:
+    if methods.get('stirling'):
+        if len(pts) % 2 == 0:
+            gui.show_error("Для Стирлинга нужно нечётное число узлов")
+        else:
+            try:
                 y_val = stirling_interpolation(pts, x_point)
                 gui.add_result('Стирлинг', f"{y_val:.6f}")
+            except Exception as e:
+                gui.show_error(f"Стирлинг: {e}")
 
-        
-        if methods.get('bessel'):
-            if len(pts) % 2 == 1:
-                gui.show_error("Для Бесселя нужно чётное число узлов")
-            else:
+    if methods.get('bessel'):
+        if len(pts) % 2 == 1:
+            gui.show_error("Для Бесселя нужно чётное число узлов")
+        else:
+            try:
                 y_val = bessel_interpolation(pts, x_point)
                 gui.add_result('Бессель', f"{y_val:.6f}")
-
-    except Exception as calc_err:
-        gui.show_error(f"Ошибка вычислений: {calc_err}")
-        return
+            except Exception as e:
+                gui.show_error(f"Бессель: {e}")
 
     try:
         gui.plot(pts, x_point)
