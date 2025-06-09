@@ -33,12 +33,16 @@ def build_divided_diff(data):
 
 def lagrange_interpolation(data, x):
     total = 0.0
-    for i, (xi, yi) in enumerate(data):
+    n = len(data)
+    for i in range(n):
+        xi = data[i][0]
+        yi = data[i][1]
         basis = yi
-        for j, (xj, _) in enumerate(data):
+        for j in range(n):
             if i != j:
-                basis *= (x - xj) / (xi - xj)
-        total += basis
+                xj = data[j][0]
+                basis = basis * (x - xj) / (xi - xj)
+        total = total + basis
     return total
 
 
