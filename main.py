@@ -74,12 +74,10 @@ class InterpolatorApp:
         cb_newton_finite = ttk.Checkbutton(
             meth_box, text="Ньютон (конеч.)", variable=self.var_newton_finite
         )
-        cb_gauss = ttk.Checkbutton(meth_box, text="Гаусс", variable=self.var_gauss)
         cb_stirling = ttk.Checkbutton(meth_box, text="Стирлинг", variable=self.var_stirling)
         cb_bessel = ttk.Checkbutton(meth_box, text="Бессель", variable=self.var_bessel)
         cb_lagr.pack(anchor=tk.W, pady=2)
         cb_newton.pack(anchor=tk.W, pady=2)
-        cb_gauss.pack(anchor=tk.W, pady=2)
         cb_stirling.pack(anchor=tk.W, pady=2)
         cb_bessel.pack(anchor=tk.W, pady=2)
         cb_newton_finite.pack(anchor=tk.W, pady=2)
@@ -107,10 +105,6 @@ class InterpolatorApp:
         )
         self.status_label.pack(side=tk.BOTTOM, fill=tk.X)
 
-        
-        
-        
-        
         self.fig = Figure(figsize=(5, 4))
         self.ax = self.fig.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.fig, master=right_panel)
@@ -343,9 +337,6 @@ class InterpolatorApp:
         if self.var_newton_divided.get():
             yy_g = [newton_divided(points, x) for x in xx]
             self.ax.plot(xx, yy_g, linestyle="-.", label="Ньютон (раздел.)")
-        if self.var_gauss.get():
-            yy_g = [gauss_interpolation(points, x) for x in xx]
-            self.ax.plot(xx, yy_g, linestyle="-.", label="Гаусс")
         if self.var_stirling.get():
             yy_s = [stirling_interpolation(points, x) for x in xx]
             self.ax.plot(xx, yy_s, linestyle=":", label="Стирлинг")

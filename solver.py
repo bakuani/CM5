@@ -1,6 +1,5 @@
 import csv
 import math
-from functools import reduce
 
 
 MATH_FUNCTIONS = {
@@ -104,56 +103,6 @@ def newton_finite(data, x):
             result = result + term_prod * delta / factorial
         return result
 
-
-import math
-
-def gauss_interpolation(data, x):
-    pts = sorted(data, key=lambda pt: pt[0])
-    n = len(pts) - 1
-    x_vals = []
-    for pt in pts:
-        x_vals.append(pt[0])
-    y_vals = []
-    for pt in pts:
-        y_vals.append(pt[1])
-    mid = n // 2
-    h = x_vals[1] - x_vals[0]
-    t = (x - x_vals[mid]) / h
-    diff_table = []
-    first_row = []
-    for y in y_vals:
-        first_row.append(y)
-    diff_table.append(first_row)
-    for lvl in range(1, n + 1):
-        prev_row = diff_table[-1]
-        new_row = []
-        for i in range(len(prev_row) - 1):
-            new_row.append(prev_row[i + 1] - prev_row[i])
-        diff_table.append(new_row)
-    full_offsets = [0, -1, 1, -2, 2, -3, 3]
-    offsets = []
-    for i in range(n + 1):
-        offsets.append(full_offsets[i])
-    result = y_vals[mid]
-    if x >= x_vals[mid]:
-        for k in range(1, n + 1):
-            prod = 1.0
-            for j in range(k):
-                prod *= (t + offsets[j])
-            center_index = len(diff_table[k]) // 2
-            delta = diff_table[k][center_index]
-            result += prod * delta / math.factorial(k)
-    else:
-        for k in range(1, n + 1):
-            prod = 1.0
-            for j in range(k):
-                prod *= (t - offsets[j])
-            offset_idx = 1 - (len(diff_table[k]) % 2)
-            center_index = len(diff_table[k]) // 2
-            delta = diff_table[k][center_index - offset_idx]
-            result += prod * delta / math.factorial(k)
-    return result
-
 def stirling_interpolation(data, x):
     pts = sorted(data, key=lambda pt: pt[0])
     n = len(pts) - 1
@@ -173,7 +122,10 @@ def stirling_interpolation(data, x):
     for i in range(1, n + 1):
         shifts.append(-i)
         shifts.append(i)
-    shifts = shifts[:n]
+    new_shifts = []
+    for i in range(0, n):
+        new_shifts.append(shifts[i])
+    shifts = new_shifts
 
     s_forward = y_vals[center]
     s_backward = y_vals[center]
@@ -306,13 +258,6 @@ def execute_interpolation(source, source_data, methods, x_point, gui):
             gui.add_result('Ньютон (конеч.)', f"{y_val:.6f}")
         except Exception as e:
             gui.show_error(f"Ньютон (конеч.): {e}")
-
-    if methods.get('gauss'):
-        try:
-            y_val = gauss_interpolation(pts, x_point)
-            gui.add_result('Гаусс', f"{y_val:.6f}")
-        except Exception as e:
-            gui.show_error(f"Гаусс: {e}")
 
     if methods.get('stirling'):
         if len(pts) % 2 == 0:
