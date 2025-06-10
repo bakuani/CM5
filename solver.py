@@ -48,30 +48,37 @@ def lagrange_interpolation(data, x):
 
 def newton_divided(data, x):
     n = len(data)
-    x_vals = [pt[0] for pt in data]
+    x_vals = []
+    for i in range(n):
+        x_vals.append(data[i][0])
     dd = build_divided_diff(data)
     result = dd[0][0]
     product = 1.0
     for level in range(1, n):
-        product *= (x - x_vals[level - 1])
-        result += dd[0][level] * product
+        product = product * (x - x_vals[level - 1])
+        term = dd[0][level]
+        result = result + term * product
     return result
+
 
 
 def newton_finite(data, x):
     pts = sorted(data, key=lambda pt: pt[0])
     n = len(pts)
-    x_vals = [p[0] for p in pts]
-    y_vals = [p[1] for p in pts]
 
-    
+    x_vals = []
+    for i in range(n):
+        x_vals.append(pts[i][0])
+
+    y_vals = []
+    for i in range(n):
+        y_vals.append(pts[i][1])
+
     h = x_vals[1] - x_vals[0]
     for i in range(1, n - 1):
         if abs((x_vals[i + 1] - x_vals[i]) - h) > 1e-8:
-            
             raise ValueError("Узлы неравномерны: метод конечных разностей недоступен")
 
-    
     diff_table = build_diff_table(pts)
 
     if x <= x_vals[n // 2]:
@@ -80,63 +87,81 @@ def newton_finite(data, x):
         factorial = 1.0
         term_prod = 1.0
         for k in range(1, n):
-            term_prod *= (t - (k - 1))
-            factorial *= k
-            delta = diff_table[k][0]  
-            result += term_prod * delta / factorial
+            term_prod = term_prod * (t - (k - 1))
+            factorial = factorial * k
+            delta = diff_table[k][0]
+            result = result + term_prod * delta / factorial
         return result
     else:
-        t = (x - x_vals[-1]) / h
-        result = y_vals[-1]
+        t = (x - x_vals[n - 1]) / h
+        result = y_vals[n - 1]
         factorial = 1.0
         term_prod = 1.0
         for k in range(1, n):
-            term_prod *= (t + (k - 1))
-            factorial *= k
-            delta = diff_table[k][n - k - 1]  
-            result += term_prod * delta / factorial
+            term_prod = term_prod * (t + (k - 1))
+            factorial = factorial * k
+            delta = diff_table[k][n - k - 1]
+            result = result + term_prod * delta / factorial
         return result
 
+
+import math
 
 def gauss_interpolation(data, x):
     pts = sorted(data, key=lambda pt: pt[0])
     n = len(pts) - 1
-    x_vals = [pt[0] for pt in pts]
-    y_vals = [pt[1] for pt in pts]
-
+    x_vals = []
+    for pt in pts:
+        x_vals.append(pt[0])
+    y_vals = []
+    for pt in pts:
+        y_vals.append(pt[1])
     mid = n // 2
     h = x_vals[1] - x_vals[0]
     t = (x - x_vals[mid]) / h
-
-    
-    diff_table = [y_vals[:]]
+    diff_table = []
+    first_row = []
+    for y in y_vals:
+        first_row.append(y)
+    diff_table.append(first_row)
     for lvl in range(1, n + 1):
-        prev = diff_table[-1]
-        diff_table.append([prev[i + 1] - prev[i] for i in range(len(prev) - 1)])
-
-    offsets = [0, -1, 1, -2, 2, -3, 3][:n + 1]
+        prev_row = diff_table[-1]
+        new_row = []
+        for i in range(len(prev_row) - 1):
+            new_row.append(prev_row[i + 1] - prev_row[i])
+        diff_table.append(new_row)
+    full_offsets = [0, -1, 1, -2, 2, -3, 3]
+    offsets = []
+    for i in range(n + 1):
+        offsets.append(full_offsets[i])
     result = y_vals[mid]
-
     if x >= x_vals[mid]:
         for k in range(1, n + 1):
-            term = reduce(lambda a, b: a * b, [(t + offsets[j]) for j in range(k)], 1.0)
-            delta = diff_table[k][len(diff_table[k]) // 2]
-            result += term * delta / math.factorial(k)
+            prod = 1.0
+            for j in range(k):
+                prod *= (t + offsets[j])
+            center_index = len(diff_table[k]) // 2
+            delta = diff_table[k][center_index]
+            result += prod * delta / math.factorial(k)
     else:
         for k in range(1, n + 1):
-            term = reduce(lambda a, b: a * b, [(t - offsets[j]) for j in range(k)], 1.0)
-            offset = 1 - (len(diff_table[k]) % 2)
-            delta = diff_table[k][len(diff_table[k]) // 2 - offset]
-            result += term * delta / math.factorial(k)
-
+            prod = 1.0
+            for j in range(k):
+                prod *= (t - offsets[j])
+            offset_idx = 1 - (len(diff_table[k]) % 2)
+            center_index = len(diff_table[k]) // 2
+            delta = diff_table[k][center_index - offset_idx]
+            result += prod * delta / math.factorial(k)
     return result
-
 
 def stirling_interpolation(data, x):
     pts = sorted(data, key=lambda pt: pt[0])
     n = len(pts) - 1
-    x_vals = [pt[0] for pt in pts]
-    y_vals = [pt[1] for pt in pts]
+    x_vals = []
+    y_vals = []
+    for pt in pts:
+        x_vals.append(pt[0])
+        y_vals.append(pt[1])
 
     h = x_vals[1] - x_vals[0]
     center = n // 2
@@ -146,7 +171,8 @@ def stirling_interpolation(data, x):
 
     shifts = [0]
     for i in range(1, n + 1):
-        shifts += [-i, i]
+        shifts.append(-i)
+        shifts.append(i)
     shifts = shifts[:n]
 
     s_forward = y_vals[center]
@@ -156,29 +182,37 @@ def stirling_interpolation(data, x):
     term_b = 1.0
 
     for k in range(1, n + 1):
-        factorial *= k
+        factorial = factorial * k
         shift_val = shifts[k - 1]
 
-        term_f *= (t + shift_val)
-        term_b *= (t - shift_val)
+        term_f = term_f * (t + shift_val)
+        term_b = term_b * (t - shift_val)
 
         col = diff_table[k]
         idx_mid = len(col) // 2
         delta_mid = col[idx_mid]
-        offset = 1 - (len(col) % 2)
+
+        if len(col) % 2 == 0:
+            offset = 1
+        else:
+            offset = 0
         delta_side = col[idx_mid - offset]
 
-        s_forward += term_f * delta_mid / factorial
-        s_backward += term_b * delta_side / factorial
+        s_forward = s_forward + term_f * delta_mid / factorial
+        s_backward = s_backward + term_b * delta_side / factorial
 
     return 0.5 * (s_forward + s_backward)
+
 
 
 def bessel_interpolation(data, x):
     pts = sorted(data, key=lambda pt: pt[0])
     n = len(pts)
-    x_vals = [pt[0] for pt in pts]
-    y_vals = [pt[1] for pt in pts]
+    x_vals = []
+    y_vals = []
+    for pt in pts:
+        x_vals.append(pt[0])
+        y_vals.append(pt[1])
 
     h = x_vals[1] - x_vals[0]
     diff_table = build_diff_table(pts)
